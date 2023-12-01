@@ -1,0 +1,43 @@
+- name: commande kubeadm pour rejoindre cluster
+  hosts: masters
+  remote_user: root
+  tasks:
+    # recupere sur le master la commande pour se connecter au cluster
+    - command: kubeadm token create --print-join-command
+      register: kubernetes_join_command
+      changed_when: false
+
+
+- name: connecte nodes au cluster
+  hosts: nodes
+  remote_user: root
+  tasks:
+  
+    #verifie que kubelet n'est pas lancé.
+    - name: check cluster init
+      shell: ss -tulpn | grep LISTEN|grep 10250 || true
+      register: cluster_status
+      changed_when: false
+
+
+      #rejoint le cluster
+    - name: join the cluster
+      command: "{{ hostvars[  groups['masters'][0]  ]['kubernetes_join_command'].stdout}}"
+      when: cluster_status.stdout ==''
+
+- name: attends les nodes
+  hosts: masters
+  remote_user: root
+  tasks:
+
+      - name: attends que les nodes soit pret
+        command: kubectl wait --for=condition=Ready nodes --all --timeout=600s
+        changed_when: false
+
+      - name: attends que les podes soit pret
+        command: kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=600s
+        changed_when: false
+
+      
+
+

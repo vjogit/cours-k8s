@@ -1,0 +1,90 @@
+- name: init et lancement du master 
+  hosts: masters
+  remote_user: root
+  tasks:
+
+# metallb-system istio-system
+# install metallb: https://metallb.universe.tf/
+
+# necessaire de relancer dns, car ne marche pas a ce stade
+# https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/
+# https://stackoverflow.com/questions/45805483/kubernetes-pods-cant-resolve-hostnames
+
+      - name: necessaire de relancer dns
+        shell: kubectl -n kube-system rollout restart deployment coredns
+
+      - name: Sleep for 10 seconds and continue with play
+        ansible.builtin.wait_for:
+          timeout: 30
+
+      - name: attends que les nodes soit pret pour dns
+        command: kubectl wait --for=condition=Ready nodes --all --timeout=1200s
+
+      - name: attends que les podes soit pret pour dns
+        command: kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=1200s
+
+        
+      - name: check metallb est installe
+        shell: kubectl get namespaces| grep metallb-system ||true
+        register: is_metallb
+        changed_when: false
+
+      - block:
+
+        - name: evite pb avec metallb pour la definition du secret
+          shell: |
+            kubectl create namespace metallb-system
+            kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+
+        - name: modif config kube-proxy avec strictARP
+          shell: 'kubectl get configmap kube-proxy -n kube-system -o yaml|sed -e "s/strictARP: false/strictARP: true/" |kubectl apply -f - -n kube-system'
+
+        - name:  config metallb-native
+          shell: kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.6/config/manifests/metallb-native.yaml
+
+        - name : metallb  attends que les nodes soit pret
+          command: kubectl wait --for=condition=Ready nodes --all --timeout=1200s
+
+        - name : metallb attends que les podes soit pret
+          command: kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=1200s
+
+        - name: definit un pool par default pour metallb
+          kubernetes.core.k8s:
+            state: present
+            definition: "{{ lookup('template', 'files/metallb-pool.yaml') | from_yaml }}"
+
+        when: is_metallb.stdout==''
+
+      # install uniquement les fichiers de istio et les certificats pour faire
+      # fonctionner istio. En fonction de chaque projet, configurera plus tard les ingres et autre.
+      # istio: https://istio.io/latest/docs/tasks/security/cert-management/plugin-ca-cert/
+      # istio a besoin de VM avec 4g de ram.
+
+
+      - name: check istio executable est installee
+        shell: kubectl get namespaces |grep istio-system ||true
+        register: is_istio
+        changed_when: false
+
+
+      - block:
+
+        - name: Install make pour istio
+          dnf:
+            name: make
+
+        - name: Install istio
+          shell: curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.18.0 TARGET_ARCH=x86_64 sh -
+
+        - name: Creation des certificats pour istio
+          shell: |
+              cd istio-1.18.0
+              mkdir -p certs
+              cd certs
+              make -f ../tools/certs/Makefile.selfsigned.mk root-ca
+              make -f ../tools/certs/Makefile.selfsigned.mk cluster1-cacerts
+              kubectl create namespace istio-system
+              kubectl create secret generic cacerts -n istio-system --from-file=cluster1/ca-cert.pem --from-file=cluster1/ca-key.pem  --from-file=cluster1/root-cert.pem  --from-file=cluster1/cert-chain.pem
+
+        when: is_istio.stdout==''
+

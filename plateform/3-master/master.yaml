@@ -1,0 +1,94 @@
+ # ansible-playbook commun.yaml
+
+- name: init et lancement du master 
+  hosts: masters
+  remote_user: root
+  tasks:
+
+# https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+
+# pour utiliser le modules kubernetes d'ansible, doit le charger sur le master:
+
+      - name: install packages python3-pip pour charger le modules kubernetes
+        ansible.builtin.dnf:
+          name: python3-pip
+          state: present
+
+      - name: charger le modules kubernetes
+        pip:
+          name: kubernetes
+          extra_args: --upgrade
+
+      - name: obliger d'avoir la meme version sur master/local d oauthlib
+        pip:
+          name: oauthlib
+          extra_args: --upgrade
+
+      - name: check cluster init
+        shell: ss -tulpn | grep LISTEN|grep 6443 || true
+        register: cluster_status
+        changed_when: false
+
+      - block:
+
+        - name: Regarde si master initalisé
+          stat:
+            path: "/etc/kubernetes/admin.conf"
+          register: result
+
+        - name: init le master
+          command: 'kubeadm init  --pod-network-cidr=192.168.0.0/16'
+          when: not result.stat.exists
+
+        - name: directory config kube en root
+          file:
+            path: .kube
+            state: directory
+
+        - name: permet kubectl acces au cluster
+          copy:
+            remote_src: true
+            src: /etc/kubernetes/admin.conf
+            dest: .kube/config
+
+        - name: Execute following command to set KUBECONFIG variable for all sessions
+          shell: 'echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.sh'
+
+      
+        # evite au cluster de passer de 100 a 33. Pas sur des effets .....
+        - name: modif config kube-proxy avec strictARP
+          shell: 'kubectl get configmap kube-proxy -n kube-system -o yaml|sed -e "s/strictARP: false/strictARP: true/" |kubectl apply -f - -n kube-system'
+          
+        - name: attends 30s avant l'install d'un CNI. Attends que coredns soit ok.
+          pause:
+            seconds: 30
+          
+        when: cluster_status.stdout ==''
+
+
+      # Info sur les differents CNI: https://platform9.com/blog/the-ultimate-guide-to-using-calico-flannel-weave-and-cilium/
+      # compatibilite entre METALLB et CNI: https://metallb.universe.tf/installation/network-addons/
+      # Avec  Antrea , coredns a du mal a s'initialiser correctement . Plante 1 fois sur 2.
+
+      - name: presence service mesh 
+        shell: kubectl get namespaces|grep tigera-operator || true
+        register: is_mesh
+        changed_when: false
+
+      - block:
+          - name: tigera-operator.yaml
+            command: kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/tigera-operator.yaml
+          - name: custom-resources.yaml
+            command: kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/custom-resources.yaml
+        when: is_mesh.stdout == ''
+
+
+      - name : attends que les nodes soit pret
+        command: kubectl wait --for=condition=Ready nodes --all --timeout=1200s
+        changed_when: false
+
+      - name : attends que les podes soit pret
+        command: kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=1200s
+        changed_when: false
+
+

@@ -1,0 +1,51 @@
+ # ansible-playbook containerd.yaml
+
+- name: install containerd
+  hosts: all
+  remote_user: root
+  tasks:
+
+    - name: diseable se linux
+      shell: setenforce 0;sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+    - name : ajoute https://download.docker.com/linux/centos/docker-ce.repo
+      shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+    - name: maj cache
+      shell: dnf makecache
+
+    - name: Install the latest version of containerd
+      ansible.builtin.dnf:
+        name: containerd.io
+        state: present
+
+# oblige de configurer cgroups pour la suite avec kubeadmin
+# https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd-systemd
+
+    - name: stat /etc/containerd/config.toml
+      stat:
+        path: /etc/containerd/config.toml
+      register: tom_file_exist
+
+    - name: sauvegarde ancien
+      ansible.builtin.copy:
+        remote_src : yes
+        src: /etc/containerd/config.toml
+        dest: /etc/containerd/config.toml.orig
+        force: yes
+      when: tom_file_exist.stat.exists
+
+    - name: default config de containerd
+      shell: 'containerd config default > /etc/containerd/config.toml'
+
+    - name: Configure Cgroupe pour Kadmin
+      replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+
+    - name: containerd prise en compte cgroups
+      command: systemctl enable --now containerd.service
+
+
+

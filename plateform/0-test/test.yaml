@@ -1,0 +1,14 @@
+ 
+- name: tache creation Vm
+  hosts: all
+  remote_user: root
+  tasks:
+
+    - name: chemin
+      shell: echo `pwd`
+      register: pwd
+
+    - name: debug chemin
+      ansible.builtin.debug:
+        msg: "le chemin est: {{ pwd }}"
+

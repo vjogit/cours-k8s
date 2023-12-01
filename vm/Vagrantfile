@@ -1,0 +1,62 @@
+ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+NETWORK_PREFIX = "10.54.56"
+
+class Machine
+  attr_accessor :name, :ip
+
+  def initialize(name, ip)
+    @name = name
+    @ip = ip
+  end
+end
+
+fichier = File.open("/home/etudiant/.ssh/id_rsa.pub", "r")
+sshRsaPu = fichier.read
+fichier.close
+
+Vagrant.configure("2") do |config|
+
+  machines = [
+    Machine.new("master", "100"),
+    Machine.new("node1", "101"),
+    Machine.new("node2", "102"),
+    Machine.new("node3", "103"),
+ #   Machine.new("node4", "104")
+  ]
+
+  # partie commune à toutes les VM.
+  # config.vm.box_url = "https://download.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-Vagrant-Libvirt-9.3-20231113.0.x86_64.box"
+  # config.vm.box = "Rocky-9-Vagrant-Libvirt-9.3-20231113.0.x86_64.box"
+  # config.vm.box_download_checksum = "19fa2171a8b37a910c8839a95ab5502be2d9a892cb33bbbeaab7ade94859b31c"
+
+  #config.vm.box_url = "https://download.rockylinux.org/pub/rocky/8.9/images/x86_64/Rocky-8-Vagrant-Libvirt-8.9-20231119.0.x86_64.box"
+  config.vm.box = "generic/rocky8"
+  #config.vm.box_download_checksum = "cdc1608e30cd3bbac1de52722c597780aa4c44018f92aa5734505eec9476a450"
+
+  #config.vm.box_download_checksum_type = "sha256"
+
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.cpus = 2
+    libvirt.memory = 4096
+    libvirt.keymap= "fr"
+    # necessaire pour virtiofs
+    #libvirt.memorybacking :access, :mode => "shared"
+  end
+
+  config.vm.synced_folder ".", "/vagrant",  disabled: true  #type: "virtiofs"
+
+  machines.each do |aMachine|
+    config.vm.define aMachine.name do |app1|
+      app1.vm.hostname = aMachine.name
+      app1.vm.network :private_network, ip: "#{NETWORK_PREFIX}.#{aMachine.ip}" , libvirt__network_name: "bridge-kvm"
+      app1.vm.provision "shell", inline: <<-SHELL
+        sudo sed -i -e 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+        sudo systemctl reload sshd
+        sudo mkdir  /root/.ssh
+        sudo echo "#{sshRsaPu}" >> /root/.ssh/authorized_keys
+      SHELL
+    end
+  end
+
+
+end

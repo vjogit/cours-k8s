@@ -1,0 +1,18 @@
+# pour tester: ansible -i inventaire.yaml k8s  -m ping -u root
+# pour generer des adresse mac: openssl rand -hex 6 | sed 's/\(..\)/\1:/g; s/:$//'
+
+
+all:
+  children:
+    k8s:
+      children:
+        masters:
+          hosts:
+            10.54.56.100:
+        nodes:
+          hosts:
+            10.54.56.101:
+            10.54.56.102: 
+            10.54.56.103: 
+ #           10.54.56.104:
+            
