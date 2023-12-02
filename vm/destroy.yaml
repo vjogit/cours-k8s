@@ -1,0 +1,31 @@
+#ansible-playbook -i hosts.yaml delete.yaml --ssh-common-args='-o StrictHostKeyChecking=no'
+
+- name: tache delete Vm
+  hosts: kvm
+  connection: local
+  vars:
+    vm_disk:  "{{vm_path}}/{{vm_name}}"
+    backup: "{{backup_path}}//{{vm_name}}"
+  tasks:
+
+    - name: destroy {{vm_name}} exists
+      ignore_errors: true
+      community.libvirt.virt:
+        name: "{{vm_name}}"
+        state: destroyed
+
+    - name: delete {{vm_name}} exists
+      ignore_errors: true
+      community.libvirt.virt:
+        name: "{{vm_name}}"
+        command: undefine
+
+    - name: supprime les disques
+      ansible.builtin.file:
+        path: "{{vm_disk}}"
+        state: absent
+    
+    - name: supprime les backups
+      ansible.builtin.file:
+          path: "{{backup}}"
+          state: absent

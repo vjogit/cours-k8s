@@ -1,0 +1,154 @@
+#Les dernieres images cloud init se trouve:
+#     https://download.rockylinux.org/pub/rocky/9/images/x86_64/
+#les images précédentes sont dans le 'coffre'
+#https://dl.rockylinux.org/vault/rocky/9.2/images/x86_64/Rocky-9-GenericCloud-Base-9.2-20230513.0.x86_64.qcow2
+
+
+# ansible-playbook -i hosts.yaml creation.yaml --ssh-common-args='-o StrictHostKeyChecking=no'
+- name: "Récupére rocky depuis internet si non présent localement"
+  hosts: localhost
+  tasks:
+    - name: Vérifier si le fichier {{template_rocky}}  existe localement
+      stat:
+        path: "./images/{{template_rocky}}"
+      register: file_stat
+      failed_when: false
+
+    - name: Récupérer le fichier depuis internet si non présent localement
+      get_url:
+        url: "https://download.rockylinux.org/pub/rocky/{{rocky_version}}/images/x86_64/{{template_rocky}}"
+        dest: "./images"
+      when: not file_stat.stat.exists
+
+- name: tache creation Vm
+  hosts: kvm
+  connection: local
+  serial: 1
+  tasks:
+    - name: remove ssh .ssh StrictHostKeyChecking
+      command: 'ssh-keygen -f "/home/etudiant/.ssh/known_hosts" -R {{inventory_hostname}}'
+      ignore_errors: true
+
+- name: tache creation Vm
+  hosts: kvm
+  connection: local
+  vars:
+# definition des chemin des données
+    disk_path: "{{vm_path}}/{{vm_name}}"
+    vm_disk: "{{disk_path}}/{{template_rocky}}"
+    tmp_directory : ./tmp/{{vm_name}}
+    data_directory: ./{{tmp_directory}}/data
+# par creation du CD de config pour cloud init
+    iso: cloud-init.iso
+    cloud_init_cdrom: ./{{tmp_directory}}/{{iso}}
+    user_data: ./{{data_directory}}/user-data
+    meta_data: ./{{data_directory}}/meta-data
+    network_config : ./{{data_directory}}/network-config
+    dump_xml: ./{{tmp_directory}}/dump.xml
+  tasks:
+
+    - name: check {{vm_name}} exists
+      community.libvirt.virt:
+        command: list_vms
+      register: all_vms
+
+    - block:
+
+      - name: Creates  VM directories
+        file:
+          path: "{{disk_path}}"
+          state: directory
+
+      - name:
+        ansible.builtin.copy:
+          src: "./images/{{template_rocky}}"
+          dest: "{{vm_disk}}"
+
+      - name: Creates  VM tmp directories
+        file:
+          path: "{{data_directory}}"
+          state: directory
+
+# fichier pour la creation de l'image disk de cloud-init
+
+      - name: user-data
+        command: cat /home/etudiant/.ssh/id_rsa.pub
+        register: ssh_pub_key
+
+      - name: user-data
+        template:
+          src: user-data.j2
+          dest: "{{user_data}}"
+
+      - name: meta-data
+        template:
+          src: meta-data.j2
+          dest: "{{meta_data}}"
+
+      - name: network-config
+        template:
+          src: network-config.j2
+          dest: "{{network_config}}"
+
+      - name: creation cdrom cloud-init
+        shell: "mkisofs  -o {{cloud_init_cdrom}} -volid cidata -joliet -rock {{data_directory}}"
+
+# creation VM. Attention, 1 carte sur un sous reseau sinon bug!
+      - name: creation vm
+        command: |
+          virt-install --name {{vm_name}}
+            --virt-type kvm
+            --memory 4096
+            --vcpus 2
+            --boot hd,menu=on
+            --disk path={{cloud_init_cdrom}},device=cdrom
+            --disk path={{vm_disk}},device=disk
+            --graphics none
+            --os-variant rocky9.0
+            --network network:bridge-kvm
+            --console pty,target_type=serial
+
+      - name: Set autostart for a VM
+        community.libvirt.virt:
+          name: "{{vm_name}}"
+          autostart: false #true
+
+# root n'a pas encore la clef ssh installée, mais l'utilsateur courant oui.
+
+      - name: attends fin de cloud cloud-init
+        shell: ssh -o StrictHostKeyChecking=no {{user_name}}@{{inventory_hostname}} cloud-init status
+        register: status_result
+        until: status_result is search("done")
+        retries: 20
+        delay: 5
+
+# supprime le driver CDROM pour etre definitif et plus propre.
+      - name: Enleve le cdrom de clound init
+        command: virsh change-media  {{ vm_name }} sda --eject --live --config
+
+      - name: install python 3 pour Rocky 8.
+        shell: ssh -o StrictHostKeyChecking=no root@{{inventory_hostname}} dnf install -y python3
+
+
+      - name:  remove user_data
+        ansible.builtin.file:
+          path: "{{tmp_directory}}"
+          state: absent
+
+      when: vm_name  not in all_vms.list_vms
+
+
+- name: mise a jour /etc/hosts
+  hosts: kvm
+  remote_user: root
+  tasks:
+
+      - name: Ajoute les hôtes au fichier /etc/hosts
+        lineinfile:
+          path: /etc/hosts
+          line: "{{item}} {{hostvars[item].vm_name}}.m222.org {{hostvars[item].vm_name}}"
+          state: present
+        with_items: "{{groups['kvm']}}"
+
+
+

@@ -1,0 +1,20 @@
+version: 2
+
+ethernets:
+    eth0:
+            addresses:
+{% for ip in range(range_ip1[0],range_ip1[0]+range_ip1[1]) %}
+              - {{reseau}}.{{ip}}/24
+{% endfor %}
+{% if range_ip2 %}
+{% for ip in range(range_ip2[0],range_ip2[0]+range_ip2[1]) %}
+              - {{reseau}}.{{ip}}/24
+{% endfor %}
+{% endif %}
+            nameservers:
+                addresses: [{{nameservers}}]
+            gateway4:  {{gateway}}
+            dhcp4: false
+            dhcp6: false
+
+   

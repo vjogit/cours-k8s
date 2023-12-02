@@ -1,0 +1,14 @@
+
+
+- name: stop les VM Vm
+  hosts: kvm
+  connection: local
+  tasks:
+    - name: stop les vm
+      community.libvirt.virt:
+        name: "{{vm_name}}"
+        state: shutdown
+
+
+
+

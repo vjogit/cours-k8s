@@ -1,0 +1,14 @@
+
+
+- name: start les VM Vm
+  hosts: kvm
+  connection: local
+  tasks:
+    - name: start les vm
+      community.libvirt.virt:
+        name: "{{vm_name}}"
+        state: running
+
+
+
+

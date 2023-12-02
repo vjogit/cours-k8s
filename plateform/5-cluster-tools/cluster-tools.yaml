@@ -1,6 +1,8 @@
 - name: init et lancement du master 
   hosts: masters
   remote_user: root
+  vars:
+    reseau : 10.54.56
   tasks:
 
 # metallb-system istio-system

@@ -1,0 +1,36 @@
+#cloud-config
+#voir : https://cloudinit.readthedocs.io/en/latest/reference/examples.html
+hostname: {{vm_name}}
+fqdn: {{vm_name}}.m222.org
+manage_etc_hosts: true
+disable_root: false
+users:
+  - name: {{user_name}}
+    shell: /bin/bash
+    lock-passwd: false
+    ssh_pwauth: True
+    chpasswd: { expire: False }
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin
+    ssh-authorized-keys:
+      - {{ssh_pub_key.stdout}}
+
+
+chpasswd:
+  list: |
+     {{user_name}}:{{user_pwd}}
+     root:{{user_pwd}}
+  expire: False
+
+runcmd:
+  - [ cp, /home/{{user_name}}/.ssh/authorized_keys, /root/.ssh/authorized_keys ]
+
+# package_update: true
+# packages:
+#    - dnf-automatic
+#    - fail2ban
+
+#systemctl status fail2ban
+
+# written to /var/log/cloud-init-output.log
+final_message: "The system is finally up, after $UPTIME seconds"

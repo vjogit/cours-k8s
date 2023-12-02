@@ -1,0 +1,12 @@
+backup_path: "./backups"
+nbr_sauvegarde : "4"
+vm_path: "./VM"
+
+#template_rocky: "Rocky-9-GenericCloud-Base-9.2-20230513.0.x86_64.qcow2"
+template_rocky: "Rocky-9-GenericCloud-Base-9.3-20231113.0.x86_64.qcow2"
+rocky_version: "9"
+
+reseau: "10.54.56"
+gateway: '{{reseau}}.1'
+nameservers: "8.8.8.8, 159.31.10.2"
+

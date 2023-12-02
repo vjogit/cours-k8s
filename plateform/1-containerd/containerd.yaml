@@ -5,8 +5,8 @@
   remote_user: root
   tasks:
 
-    - name: diseable se linux
-      shell: setenforce 0;sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+    #- name: diseable se linux
+      #shell: setenforce 0;sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 
     - name : ajoute https://download.docker.com/linux/centos/docker-ce.repo
       shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
