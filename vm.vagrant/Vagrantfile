@@ -27,13 +27,13 @@ system("virsh net-autostart bridge-kvm")
 system("virsh net-start bridge-kvm")
 
 machines.each do |aMachine|
-    #system("virsh net-update bridge-kvm add ip-dhcp-host \"<host mac='#{aMachine.mac}' ip='#{NETWORK_PREFIX}.#{aMachine.ip}' />\" --live --config")
     system("ssh-keygen -f \"/home/etudiant/.ssh/known_hosts\" -R \"#{NETWORK_PREFIX}.#{aMachine.ip}\"")
 end
 
 Vagrant.configure("2") do |config|
 
   # partie commune à toutes les VM. Peux aussi utiliser generic/rocky8
+  # La Rocky-9-Vagrant-Libvirt-9.3 passera dans le repertoire https://dl.rockylinux.org/vault/rocky/9.3 quand la 9.4 sortira.
 
   config.vm.box_url = "https://download.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-Vagrant-Libvirt-9.3-20231113.0.x86_64.box"
   config.vm.box = "Rocky-9-Vagrant-Libvirt-9.3-20231113.0.x86_64.box"
@@ -68,8 +68,8 @@ Vagrant.configure("2") do |config|
       end
 
       app1.vm.provision "shell", inline: <<-SHELL
-        # se retrouve avec la meme adresse mac sur 2 ip.
-        # Obligé de réinitialiser le cache arp, evite ainsi attente sur  ssh
+        # peut se retrouver avec la meme adresse mac sur 2 ip.
+        # Pour eviter ainsunei attente sur  ssh, réinitialise le cache arp
         sudo ip -s -s neigh flush all 2> /dev/null
       SHELL
 

@@ -1,0 +1,11 @@
+#verifie que kubelet n'est pas lancé.
+- name: check cluster init
+  shell: ss -tulpn | grep LISTEN|grep 10250 || true
+  register: cluster_status
+  changed_when: false
+
+
+  #rejoint le cluster
+- name: join the cluster
+  command: "{{command_join}}"
+  when: cluster_status.stdout ==''

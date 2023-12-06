@@ -1,0 +1,5 @@
+- name : attends que les nodes soit pret
+  command: kubectl wait --for=condition=Ready nodes --all --timeout=1200s
+
+- name : attends que les podes soit pret
+  command: kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=1200s

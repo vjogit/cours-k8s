@@ -1,0 +1,47 @@
+- name: installe la configuration commune aux noeuds composant k8s
+  hosts: all
+  remote_user: root
+  vars:
+    modprobes:
+      - nf_nat
+      - xt_REDIRECT
+      - xt_owner
+      - iptable_nat
+      - iptable_mangle
+      - iptable_filter
+  roles:
+    - role: containerd
+    - role: kube-tools
+
+- name: initialise et lance le  master 
+  hosts: masters
+  remote_user: root
+  roles:
+    - role: master
+  tasks:
+    - name: recupere la commande pour qu'un node rejoigne le cluster
+      command: kubeadm token create --print-join-command
+      register: kubernetes_join_command
+      changed_when: false
+
+- name: connecte les nodes au cluster
+  hosts: nodes
+  remote_user: root
+  vars:
+    command_join : "{{ hostvars[  groups['masters'][0]  ]['kubernetes_join_command'].stdout}}"
+  roles:
+    - role: nodes
+
+- name: attends que les nodes soit pret
+  hosts: masters
+  remote_user: root
+  tasks:
+    - import_tasks: waitPodsNodeReady.yml
+
+- name: installe les outils du cluster
+  hosts: masters
+  remote_user: root
+  vars:
+    reseau : 10.54.56
+  roles:
+    - role: cluster-tools

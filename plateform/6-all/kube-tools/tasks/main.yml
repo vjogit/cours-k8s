@@ -1,0 +1,68 @@
+# https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+# et aussi : https://kubernetes.io/docs/setup/production-environment/container-runtimes/
+# swap doit etre diseable.
+
+# On a nftables or iptables pour le filtrage sur rocky 9.
+# iptables est deprecie, remplace par firewalld en front de nftables.
+# https://docs.rockylinux.org/guides/security/enabling_iptables_firewall/
+# https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-using-firewalld-on-rocky-linux-9
+
+- name: overlay
+  command: 'modprobe overlay'
+
+- name: br_netfilter
+  command: 'modprobe br_netfilter'
+
+- name: config modules-load.d
+  ansible.builtin.copy:
+    src: modules-load.conf
+    dest: /etc/modules-load.d/k8s.conf
+
+- name: copy kubernetes.conf
+  ansible.builtin.copy:
+    src: sysctl.d.conf
+    dest: /etc/sysctl.d/k8s.conf
+
+- name: Reload Kernel parameter configuration
+  command: sysctl --system
+
+- name: Turn off swap
+  replace:
+    path: /etc/fstab
+    regexp: '^/swap'
+    replace: '#/swap'
+    backup: yes
+
+- name: active no swap
+  command: swapoff -a
+
+- name: copy k8s.repo
+  ansible.builtin.copy:
+    src: k8s.repo
+    dest: /etc/yum.repos.d/k8s.repo
+
+- name: Build the yum cache for Kubernetes yum repository.
+  command: dnf makecache
+
+- name: install Kubernetes packages
+  shell: "dnf install -y {kubelet,kubeadm,kubectl} --disableexcludes=kubernetes"
+
+- name: Enable and start kubelet.service
+  command: systemctl enable --now kubelet.service
+
+
+# Pour istio, doit d'abord installer les modules sous rocky linux. voir:
+# https://github.com/istio/istio/issues/23009
+# a supprimer si utilise --set components.cni.enabled=true dans istio
+
+- name: install si necessaire les modules
+  command:  "modprobe {{item}}"
+  loop: "{{modprobes}}"
+
+- name : fais persister modprobe au prochain boot
+  lineinfile:
+    path: /etc/modules-load.d/k8s.conf
+    line: "{{item}}"
+    state: present
+  loop: "{{modprobes}}"
+
