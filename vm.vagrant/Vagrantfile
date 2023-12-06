@@ -14,11 +14,11 @@ end
 
 machines = [
     Machine.new("master", "100", "0a:54:20:4c:fb:62"),
-    # Machine.new("node1", "101", "6a:b1:35:c9:d1:a9"),
-    # Machine.new("node2", "102", "b1:cc:75:02:5b:ec"),
-    # Machine.new("node3", "103", "92:38:ab:f7:7f:9b"),
- #   Machine.new("node4", "104", "6a:b1:35:c9:d1:a9")
-  ]
+    Machine.new("node1", "101", "4e:e3:05:5d:92:5d"),
+    Machine.new("node2", "102", "8a:fe:35:ca:7c:61"),
+    Machine.new("node3", "103", "3e:10:50:4d:06:13"),
+ #  Machine.new("node4", "104", "ce-0d-ec-08-d4-f8")
+]
 
 system("virsh net-define bridge-kvm.xml")
 system("virsh net-autostart bridge-kvm")
@@ -26,6 +26,7 @@ system("virsh net-start bridge-kvm")
 
 machines.each do |aMachine|
     system("virsh net-update bridge-kvm add ip-dhcp-host \"<host mac='#{aMachine.mac}' ip='#{NETWORK_PREFIX}.#{aMachine.ip}' />\" --live --config")
+    system("ssh-keygen -f \"/home/etudiant/.ssh/known_hosts\" -R \"#{NETWORK_PREFIX}.#{aMachine.ip}\"")
 end
 
 Vagrant.configure("2") do |config|
