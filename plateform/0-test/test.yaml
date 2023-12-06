@@ -12,3 +12,5 @@
       ansible.builtin.debug:
         msg: "le chemin est: {{ pwd }}"
 
+    
+
