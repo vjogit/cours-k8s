@@ -1,4 +1,4 @@
-- name: init et lancement du master 
+- name: installe les outils du cluster
   hosts: masters
   remote_user: root
   vars:

@@ -1,4 +1,4 @@
-- name: commande kubeadm pour rejoindre cluster
+- name: Attache les nodes au cluster.
   hosts: masters
   remote_user: root
   tasks:
