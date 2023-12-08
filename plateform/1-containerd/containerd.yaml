@@ -2,7 +2,7 @@
 
 - name: install containerd
   hosts: all
-  remote_user: root
+  become: yes
   tasks:
 
     #- name: diseable se linux

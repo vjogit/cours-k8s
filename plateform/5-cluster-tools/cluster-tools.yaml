@@ -1,6 +1,6 @@
 - name: installe les outils du cluster
   hosts: masters
-  remote_user: root
+  become: yes
   vars:
     reseau : 10.54.56
   tasks:

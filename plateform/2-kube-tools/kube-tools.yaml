@@ -2,7 +2,7 @@
 
 - name: install kubelet,kubeadm et kubectl
   hosts: all
-  remote_user: root
+  become: yes
   vars:
     modprobes:
       - nf_nat

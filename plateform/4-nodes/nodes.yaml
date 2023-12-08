@@ -1,6 +1,6 @@
 - name: Attache les nodes au cluster.
   hosts: masters
-  remote_user: root
+  become: yes
   tasks:
     # recupere sur le master la commande pour se connecter au cluster
     - command: kubeadm token create --print-join-command
@@ -10,7 +10,7 @@
 
 - name: connecte nodes au cluster
   hosts: nodes
-  remote_user: root
+  become: yes
   tasks:
   
     #verifie que kubelet n'est pas lancé.
@@ -27,7 +27,7 @@
 
 - name: attends les nodes
   hosts: masters
-  remote_user: root
+  become: yes
   tasks:
 
       - name: attends que les nodes soit pret

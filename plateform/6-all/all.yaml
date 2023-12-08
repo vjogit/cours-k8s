@@ -1,6 +1,6 @@
 - name: installe la configuration commune aux noeuds composant k8s
   hosts: all
-  remote_user: root
+  become: yes
   vars:
     modprobes:
       - nf_nat
@@ -15,7 +15,7 @@
 
 - name: initialise et lance le  master 
   hosts: masters
-  remote_user: root
+  become: yes
   roles:
     - role: master
   tasks:
@@ -26,7 +26,7 @@
 
 - name: connecte les nodes au cluster
   hosts: nodes
-  remote_user: root
+  become: yes
   vars:
     command_join : "{{ hostvars[  groups['masters'][0]  ]['kubernetes_join_command'].stdout}}"
   roles:
@@ -34,13 +34,13 @@
 
 - name: attends que les nodes soit pret
   hosts: masters
-  remote_user: root
+  become: yes
   tasks:
     - import_tasks: waitPodsNodeReady.yml
 
 - name: installe les outils du cluster
   hosts: masters
-  remote_user: root
+  become: yes
   vars:
     reseau : 10.54.56
   roles:

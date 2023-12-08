@@ -32,19 +32,27 @@
     command: 'kubeadm init  --pod-network-cidr=192.168.0.0/16'
     when: not result.stat.exists
 
-  - name: directory config kube en root
+  # obligé de le copier pour etudiant et root, car les scripts s'executent en root
+  - name: directory config de kube 
     file:
-      path: .kube
+      path: "{{ item }}"
       state: directory
+    loop :
+      - .kube
+      - /root/.kube
 
   - name: permet kubectl acces au cluster
     copy:
       remote_src: true
       src: /etc/kubernetes/admin.conf
-      dest: .kube/config
+      dest: "{{ item }}/config"
+    loop :
+      - .kube
+      - /root/.kube    
 
-  - name: Execute following command to set KUBECONFIG variable for all sessions
-    shell: 'echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.sh'
+# pas necessaire
+  # - name: Execute following command to set KUBECONFIG variable for all sessions
+  #   shell: 'echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.sh'
 
 
   # evite au cluster de passer de 100 a 33. Pas sur des effets .....
