@@ -1,0 +1,58 @@
+ 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  '{{name}}' 
+  namespace: '{{docker_namespace}}'
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: registry
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: registry
+    spec:
+      volumes:
+      - name: task-pv-storage-registry
+        persistentVolumeClaim:
+          claimName: '{{claim_name_registry}}'
+      - name: task-pv-storage-docker
+        persistentVolumeClaim:
+          claimName: '{{claim_name_docker}}'
+
+      containers:
+      - name: registry
+        image: registry:2.8.1
+        args:
+          - /bin/sh
+          - -c
+          - registry serve /var/lib/registry/config.yaml
+        #  - touch /tmp/healthy; sleep 300000; 
+        # env:
+        #   - name: REGISTRY_AUTH
+        #     value: "htpasswd"
+        #   - name: REGISTRY_AUTH_HTPASSWD_REALM
+        #     value: "Registry Realm"
+        #   - name: REGISTRY_AUTH_HTPASSWD_PATH
+        #     value: "/etc/docker/htpasswd"
+        #   - name: REGISTRY_HTTP_SECRET
+        #     value: "1234"
+        #   - name: REGISTRY_HTTP_TLS_CERTIFICATE
+        #     value: "/etc/docker/certs/tls.crt"
+        #   - name: REGISTRY_HTTP_TLS_KEY
+        #     value: "/etc/docker/certs/tls.key"
+
+        volumeMounts:
+          - mountPath: /var/lib/registry
+            name: task-pv-storage-registry
+          - mountPath: /etc/docker
+            name: task-pv-storage-docker
+
+
+
+
+

@@ -2,9 +2,9 @@ backup_path: "./backups"
 nbr_sauvegarde : "4"
 vm_path: "./VM"
 
-#template_rocky: "Rocky-9-GenericCloud-Base-9.2-20230513.0.x86_64.qcow2"
-template_rocky: "Rocky-9-GenericCloud-Base-9.3-20231113.0.x86_64.qcow2"
-rocky_version: "9"
+# travaille avec une 9.2 qui est 'stable' avec les modif de changement d'utilitaire (iptable->nftable)
+rocky_disk: "Rocky-9-GenericCloud-Base-9.2-20230513.0.x86_64.qcow2"
+rocky_download_url: "https://dl.rockylinux.org/vault/rocky/9.2/images/x86_64/Rocky-9-GenericCloud-Base-9.2-20230513.0.x86_64.qcow2"
 
 reseau: "10.54.56"
 gateway: '{{reseau}}.1'

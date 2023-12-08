@@ -1,22 +1,22 @@
 #Les dernieres images cloud init se trouve:
 #     https://download.rockylinux.org/pub/rocky/9/images/x86_64/
 #les images précédentes sont dans le 'coffre'
-#https://dl.rockylinux.org/vault/rocky/9.2/images/x86_64/Rocky-9-GenericCloud-Base-9.2-20230513.0.x86_64.qcow2
+#   https://dl.rockylinux.org/vault/rocky/9.2/images/x86_64/Rocky-9-GenericCloud-Base-9.2-20230513.0.x86_64.qcow2
 
 
 # ansible-playbook -i hosts.yaml creation.yaml --ssh-common-args='-o StrictHostKeyChecking=no'
 - name: "Récupére rocky depuis internet si non présent localement"
   hosts: localhost
   tasks:
-    - name: Vérifier si le fichier {{template_rocky}}  existe localement
+    - name: Vérifie si le fichier {{rocky_disk}}  existe localement
       stat:
-        path: "./images/{{template_rocky}}"
+        path: "./images/{{rocky_disk}}"
       register: file_stat
       failed_when: false
 
     - name: Récupérer le fichier depuis internet si non présent localement
       get_url:
-        url: "https://download.rockylinux.org/pub/rocky/{{rocky_version}}/images/x86_64/{{template_rocky}}"
+        url: "{{rocky_download_url}}"
         dest: "./images"
       when: not file_stat.stat.exists
 
@@ -35,10 +35,10 @@
   vars:
 # definition des chemin des données
     disk_path: "{{vm_path}}/{{vm_name}}"
-    vm_disk: "{{disk_path}}/{{template_rocky}}"
+    vm_disk: "{{disk_path}}/{{rocky_disk}}"
     tmp_directory : ./tmp/{{vm_name}}
     data_directory: ./{{tmp_directory}}/data
-# par creation du CD de config pour cloud init
+# Pour la  creation du CD de config de cloud init
     iso: cloud-init.iso
     cloud_init_cdrom: ./{{tmp_directory}}/{{iso}}
     user_data: ./{{data_directory}}/user-data
@@ -61,7 +61,7 @@
 
       - name:
         ansible.builtin.copy:
-          src: "./images/{{template_rocky}}"
+          src: "./images/{{rocky_disk}}"
           dest: "{{vm_disk}}"
 
       - name: Creates  VM tmp directories

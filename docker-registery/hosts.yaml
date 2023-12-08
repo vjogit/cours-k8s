@@ -1,0 +1,14 @@
+all:
+  children:
+    k8s:
+      children:
+        masters:
+          hosts:
+            10.54.56.100:
+        nodes:
+          hosts:
+            10.54.56.101: {name_hosts: node1v2.m222.org}
+            10.54.56.102: 
+            10.54.56.103: 
+            10.54.56.104:
+            

@@ -1,0 +1,137 @@
+---
+# soit doit installer sur l'hote masterRootCA.crt
+# soit utilise un registre non securise,  https://docs.docker.com/registry/insecure/
+# et doit
+#       systemctl restart docker
+# pour prise en compte de la manip
+# voir aussi https://medium.com/swlh/deploy-your-private-docker-registry-as-a-pod-in-kubernetes-f6a489bf0180
+
+# creation des certicats et gestion des rootCA
+# https://gist.github.com/fntlnz/cf14feb5a46b2eda428e000157447309
+# Pour rocky linux: https://www.redhat.com/sysadmin/configure-ca-trust-list
+
+- hosts: localhost
+  tasks:
+    - name: create certificat
+      shell: "cd certs; make ip_value='{{docker_ip}}'"
+      register: res_certificat
+      changed_when: 'not "make: Nothing to be done"  in res_certificat.stdout'
+
+- name: transfert rootCA certificat vers tt les noeuds
+  hosts: k8s
+  remote_user: root
+  tasks:
+    - name: "Creation du repertoire : {{dir_certificates_system}}"
+      file:
+        path: "{{dir_certificates_system}}"
+        state: directory
+
+    - name: "Transfer masterRootCA.crt a {{name_hosts}}"
+      copy:
+        src: certs/masterRootCA.crt
+        dest: "{{dir_certificates_system}}/masterRootCA.crt"
+      register: transert_root_certif
+
+    - name: maj du store de CA
+      command: update-ca-trust
+      #when: transert_root_certif.changed
+
+- hosts: 10.54.56.101
+  remote_user: root
+  tasks:
+    - name: creation directory '{{path_certs_docker}}'
+      file: path='{{path_certs_docker}}' state=directory
+
+    - name: creation directory '{{path_docker_registry}}/registry
+      file: path='{{path_docker_registry}}/registry' state=directory
+
+    - name: copy fichier conf registery
+      copy:
+        src: files/config.yaml
+        dest: "{{path_docker_registry}}/registry"
+
+    - name: Transfer tls.key et tls.crt
+      copy:
+        src: "certs/{{item}}"
+        dest: "{{path_certs_docker}}/{{item}}"
+      loop:
+        - tls.key
+        - tls.crt
+
+    - name: Install htpasswd
+      dnf:
+        name: httpd-tools
+        state: latest
+
+    - name:
+      shell: cat {{path_docker_registry}}/docker/htpasswd |grep vjo ||true
+      register: htpasswd_file
+      changed_when: false
+
+    - name: "genere {{path_docker_registry}}/docker/htpasswd"
+      shell: "htpasswd -Bbn vjo vjo > {{path_docker_registry}}/docker/htpasswd"
+      when: htpasswd_file.stdout == ''
+
+- hosts: masters
+  remote_user: root
+  vars:
+    docker_namespace: "docker-registrery"
+    persitence_node: '{{hostvars["10.54.56.101"].name_hosts}}'
+  tasks:
+    - name: create namespace
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', 'namespace.yaml' ) | from_yaml }}"
+
+    - name: "storage class {{item}}"
+      vars:
+        name: "{{item}}-storage-class"
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', './templates/storage-class.yaml') | from_yaml }}"
+      loop:
+        - registry
+        - docker
+
+    - name: "persistence volume {{item}}"
+      vars:
+        name: "{{item}}-persitence-volume"
+        name_storage_class: "{{item}}-storage-class"
+        affinity: "{{persitence_node}}"
+        path: "/data/docker-registry/{{item}}"
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', 'PersistentVolume.yaml') | from_yaml }}"
+      loop:
+        - registry
+        - docker
+
+    - name: "PersistentVolumeClaim {{item}}"
+      vars:
+        name: "{{item}}-persitence-volume-claim"
+        name_storage_class: "{{item}}-storage-class"
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', 'PersistentVolumeClaim.yaml') | from_yaml }}"
+      loop:
+        - registry
+        - docker
+
+    - name: service
+      vars:
+        name: "service-{{docker_namespace}}"
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', 'service.yaml') | from_yaml }}"
+      loop:
+        - registry
+        - docker
+
+    - name: deploy pods
+      vars:
+        name: "deployement-{{docker_namespace}}"
+        claim_name_registry: "registry-persitence-volume-claim"
+        claim_name_docker: "docker-persitence-volume-claim"
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', 'deployment.yaml' ) | from_yaml }}"

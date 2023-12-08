@@ -1,0 +1,22 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: '{{name}}' 
+  namespace: '{{docker_namespace}}' 
+spec:
+  capacity:
+    storage: 7Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: '{{name_storage_class}}'
+  hostPath:
+    path: '{{path}}'
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - '{{affinity}}'

@@ -1,0 +1,12 @@
+kind: PersistentVolumeClaim
+apiVersion: "v1"
+metadata:
+  name:  '{{name}}' 
+  namespace: '{{docker_namespace}}'
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  storageClassName: '{{name_storage_class}}'
+  resources:
+    requests:
+      storage: "7Gi"

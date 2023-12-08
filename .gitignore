@@ -1,2 +1,5 @@
 vm.vagrant/.vagrant
-platform.old
+
+vm.ansible/images
+vm.ansible/tmp
+vm.ansible/VM

@@ -1,0 +1,4 @@
+docker_ip: "10.54.56.39"
+dir_certificates_system: '/etc/pki/ca-trust/source/anchors/'
+path_docker_registry: /data/docker-registry
+path_certs_docker: '{{path_docker_registry}}/docker/certs'
