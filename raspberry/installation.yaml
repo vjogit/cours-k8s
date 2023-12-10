@@ -1,0 +1,51 @@
+- name: tache creation Vm
+  hosts: kvm
+  connection: local
+  serial: 1
+  tasks:
+    - name: supprime ip des hosts connue pour ssh 
+      command: 'ssh-keygen -f "/home/vjo/.ssh/known_hosts" -R {{inventory_hostname}}'
+      ignore_errors: true
+
+
+- name: Configuration réseau rocky
+  hosts: localhost
+  become: yes
+  vars:
+    media: "/media/vjo/__"
+  tasks:
+    - name: copie ifcfg-eth0 dans /etc/sysconfig/network-scripts
+      copy: 
+        src: ifcfg-eth0.master 
+        dest: "{{media}}/etc/sysconfig/network-scripts"
+        mode: '0600'
+
+    - name: sudo pour utilisateur rocky
+      copy: 
+        src: 90-init-users 
+        dest: "{{media}}/etc/sudoers.d"
+        mode: '644'
+
+    - name: Met le nom du host 
+      lineinfile:
+        path: "{{media}}/etc/hosts"
+        line: "127.0.1.1       masterv2"
+        state: present
+
+    - name: Ajoute les hôtes au fichier /etc/hosts
+      lineinfile:
+        path: "{{media}}/etc/hosts"
+        line: "{{item}} {{hostvars[item].vm_name}}.m222.org {{hostvars[item].vm_name}}"
+        state: present
+      with_items: "{{groups['kvm']}}"
+
+
+    - name: Ajoute les hôtes au fichier /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "{{item}} {{hostvars[item].vm_name}}.m222.org {{hostvars[item].vm_name}}"
+        state: present
+      with_items: "{{groups['kvm']}}"
+
+
+

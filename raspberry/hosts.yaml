@@ -1,0 +1,8 @@
+kvm:
+  hosts:
+    10.54.56.100: {vm_name: masterv2, user_name: etudiant, user_pwd: etudiant, restore: "-", range_ip1: [100, 1] ,range_ip2: [33, 20]}
+    10.54.56.101: {vm_name: node1v2, user_name: etudiant, user_pwd: etudiant, restore: "-", range_ip1: [101, 1] ,range_ip2: []}
+    10.54.56.102: {vm_name: node2v2, user_name: etudiant, user_pwd: etudiant, restore: "-", range_ip1: [102, 1] ,range_ip2: []}
+    10.54.56.103: {vm_name: node3v2, user_name: etudiant, user_pwd: etudiant, restore: "-", range_ip1: [103, 1] ,range_ip2: []}
+    #10.54.56.104: {vm_name: node4v2, user_name: etudiant, user_pwd: etudiant, restore: "-", range_ip1: [104, 1] ,range_ip2: []}
+    

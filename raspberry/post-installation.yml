@@ -1,0 +1,52 @@
+- name: Configuration réseau rocky
+  hosts: 10.54.56.100
+  remote_user: rocky
+  become: yes
+
+  tasks:
+    - name: m.a.j du hostname 
+      ansible.builtin.hostname:
+        name: masterv2
+
+    - name: Ensure group "etudiant" exists
+      ansible.builtin.group:
+        name: etudiant
+        state: present
+
+
+    - name: cree l'utilisateur etudiant
+      ansible.builtin.user:
+        name: etudiant
+        # openssl passwd etudiant
+        password: $1$VuibGrPH$Lka4nNDIaoYVRaReY28z10  
+        groups: etudiant, wheel
+
+    - name: sudo pour etudiant sans pwd
+      lineinfile:
+        path: /etc/sudoers.d/90-init-users
+        line: "etudiant ALL=(ALL) NOPASSWD:ALL"
+        state: present
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: "/home/{{item}}/.ssh"
+        state: directory
+        owner: "{{item}}"
+        group: "{{item}}"
+        mode: '700'
+      loop: 
+        - rocky
+        - etudiant
+
+    - name: copie ssh pub pour utilisateur rocky
+      copy: 
+        src: /home/vjo/.ssh/id_rsa.pub 
+        dest: "/home/{{item}}/.ssh/authorized_keys"
+        owner: "{{item}}"
+        group: "{{item}}"
+        mode: '644'
+      loop: 
+        - rocky
+        - etudiant
+     
+
