@@ -3,49 +3,39 @@
 - name: install containerd
   hosts: all
   become: yes
+  vars:
+    version: "1.24"
   tasks:
 
     #- name: diseable se linux
       #shell: setenforce 0;sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 
-    - name : ajoute https://download.docker.com/linux/centos/docker-ce.repo
-      shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    - name : ajoute libcontainers:stable.repo
+      shell: dnf config-manager --add-repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8/devel:kubic:libcontainers:stable.repo
+
+    - name : ajoute devel:kubic:libcontainers:stable:cri-o:1.22.repo
+      shell: dnf config-manager --add-repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:{{version}}/CentOS_8/devel:kubic:libcontainers:stable:cri-o:{{version}}.repo
 
     - name: maj cache
       shell: dnf makecache
 
-    - name: Install the latest version of containerd
+    - name: Install conntrack-tools
       ansible.builtin.dnf:
-        name: containerd.io
+        name: conntrack-tools
         state: present
 
-# oblige de configurer cgroups pour la suite avec kubeadmin
-# https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd-systemd
+    - name: Install the latest version of cri-o
+      ansible.builtin.dnf:
+        name: cri-o 
+        state: present
 
-    - name: stat /etc/containerd/config.toml
-      stat:
-        path: /etc/containerd/config.toml
-      register: tom_file_exist
+    - name: Install the latest version of cri-tools
+      ansible.builtin.dnf:
+        name: cri-tools
+        state: present
 
-    - name: sauvegarde ancien
-      ansible.builtin.copy:
-        remote_src : yes
-        src: /etc/containerd/config.toml
-        dest: /etc/containerd/config.toml.orig
-        force: yes
-      when: tom_file_exist.stat.exists
-
-    - name: default config de containerd
-      shell: 'containerd config default > /etc/containerd/config.toml'
-
-    - name: Configure Cgroupe pour Kadmin
-      replace:
-        path: /etc/containerd/config.toml
-        regexp: 'SystemdCgroup = false'
-        replace: 'SystemdCgroup = true'
-
-    - name: containerd prise en compte cgroups
-      command: systemctl enable --now containerd.service
-
-
-
+    - name: start crio
+      ansible.builtin.systemd_service:
+        name: crio
+        state: started
+        enabled: true

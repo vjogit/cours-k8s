@@ -3,3 +3,6 @@ vm.vagrant/.vagrant
 vm.ansible/images
 vm.ansible/tmp
 vm.ansible/VM
+
+linux
+

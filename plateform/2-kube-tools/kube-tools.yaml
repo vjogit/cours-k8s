@@ -42,11 +42,13 @@
       command: sysctl --system
 
     - name: Turn off swap
-      replace:
-        path: /etc/fstab
-        regexp: '^/swap'
-        replace: '#/swap'
-        backup: yes
+      shell: awk '{  if ($0 ~ "swap" && substr($0, 1, 1) != "#") {print "#"$0} else {print $0}}' /etc/fstab
+      register: fstab 
+
+    - name: copy
+      copy : 
+        content: "{{fstab.stdout}}"
+        dest: /etc/fstab
 
     - name: active no swap
       command: swapoff -a

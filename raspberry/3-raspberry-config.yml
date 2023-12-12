@@ -2,8 +2,13 @@
   hosts: 10.54.56.100
   remote_user: rocky
   become: yes
-
   tasks:
+    - name: stop firewalld
+      ansible.builtin.systemd_service:
+        name: firewalld.service
+        state: stopped
+        enabled: false
+
     - name: m.a.j du hostname 
       ansible.builtin.hostname:
         name: masterv2
@@ -34,8 +39,7 @@
         owner: "{{item}}"
         group: "{{item}}"
         mode: '700'
-      loop: 
-        - rocky
+      loop:
         - etudiant
 
     - name: copie ssh pub pour utilisateur rocky
@@ -46,7 +50,9 @@
         group: "{{item}}"
         mode: '644'
       loop: 
-        - rocky
         - etudiant
+
+    - name: etend la partition au disque
+      shell: rootfs-expand
      
 

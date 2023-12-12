@@ -31,14 +31,8 @@
 
       - block:
 
-        - name: Regarde si master initalisé
-          stat:
-            path: "/etc/kubernetes/admin.conf"
-          register: result
-
         - name: init le master
-          command: 'kubeadm init  --pod-network-cidr=192.168.0.0/16'
-          when: not result.stat.exists
+          command: 'kubeadm init  --ignore-preflight-errors=all --pod-network-cidr=192.168.0.0/16'
 
 # obligé de le copier pour etudiant et root, car les scripts s'executent en root
         - name: directory config de kube 
