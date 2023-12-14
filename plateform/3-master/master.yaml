@@ -31,8 +31,8 @@
 
       - block:
 
-        - name: init le master
-          command: 'kubeadm init  --ignore-preflight-errors=all --pod-network-cidr=192.168.0.0/16'
+        - name: "init le master. Si pb faire: kubeadm reset -f"
+          command: 'kubeadm init  --pod-network-cidr=192.168.0.0/16'
 
 # obligé de le copier pour etudiant et root, car les scripts s'executent en root
         - name: directory config de kube 
