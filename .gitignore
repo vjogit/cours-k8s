@@ -1,8 +1,11 @@
 vm.vagrant/.vagrant
+vm.vagrant.1/.vagrant
 
 vm.ansible/images
 vm.ansible/tmp
 vm.ansible/VM
 
-linux
+linux/
+linux/mnt
+
 
