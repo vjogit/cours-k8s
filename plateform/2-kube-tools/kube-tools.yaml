@@ -64,7 +64,7 @@
     - name: install Kubernetes packages
       shell: "dnf install -y {kubelet,kubeadm,kubectl} --disableexcludes=kubernetes"
 
-    - name: Enable and start kubelet.service
+    - name: Enable and start kubelet.service. Sera en erreur car pas de config. kubeadm le relancera.
       command: systemctl enable --now kubelet.service
 
 

@@ -70,6 +70,8 @@
           state: directory
 
 # fichier pour la creation de l'image disk de cloud-init
+# peux simplifier via: virt-sysprep --root-password=password:root --ssh-inject=root:file:/home/vjo/.ssh/id_rsa.pub -a Rocky-9-GenericCloud-Base-9.3-20231113.0.x86_64.qcow2
+
 
       - name: user-data
         command: cat /home/etudiant/.ssh/id_rsa.pub

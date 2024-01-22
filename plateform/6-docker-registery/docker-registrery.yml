@@ -64,12 +64,12 @@
         state: latest
 
     - name:
-      shell: cat {{path_docker_registry}}/docker/htpasswd |grep vjo ||true
+      shell: cat {{path_docker_registry}}/docker/htpasswd |grep etudiant ||true
       register: htpasswd_file
       changed_when: false
 
     - name: "genere {{path_docker_registry}}/docker/htpasswd"
-      shell: "htpasswd -Bbn vjo vjo > {{path_docker_registry}}/docker/htpasswd"
+      shell: "htpasswd -Bbn etudiant etudiant > {{path_docker_registry}}/docker/htpasswd"
       when: htpasswd_file.stdout == ''
 
 - hosts: masters
@@ -83,7 +83,7 @@
         state: present
         definition: "{{ lookup('template', 'namespace.yaml' ) | from_yaml }}"
 
-    - name: "storage class {{item}}"
+    - name: "storage class"
       vars:
         name: "{{item}}-storage-class"
       kubernetes.core.k8s:
@@ -93,7 +93,7 @@
         - registry
         - docker
 
-    - name: "persistence volume {{item}}"
+    - name: "persistence volume"
       vars:
         name: "{{item}}-persitence-volume"
         name_storage_class: "{{item}}-storage-class"
@@ -106,7 +106,7 @@
         - registry
         - docker
 
-    - name: "PersistentVolumeClaim {{item}}"
+    - name: "PersistentVolumeClaim"
       vars:
         name: "{{item}}-persitence-volume-claim"
         name_storage_class: "{{item}}-storage-class"

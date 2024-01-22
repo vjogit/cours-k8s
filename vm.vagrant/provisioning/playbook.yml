@@ -22,6 +22,6 @@
 
 # ne doit avoir qu'un carte active sur le reseau, script non configuré pour prendre en compte 2 cartes réseaux
 
-    - name: Copie stopEth1.sh
-      ansible.builtin.script:  stopEth1.sh
+    # - name: Copie stopEth1.sh
+    #   ansible.builtin.script:  stopEth1.sh
         

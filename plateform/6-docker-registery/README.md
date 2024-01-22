@@ -6,12 +6,12 @@ et pour un docker unsecure:
 https://docs.docker.com/registry/insecure/
 https://askubuntu.com/questions/1153636/how-to-configure-the-docker-snap-to-accept-a-private-registry-certificate
 
-Dans 
-/var/snap/docker/current/etc/docker/10.54.56.39:5000
+Dans le repertoire 
+/var/snap/docker/current/etc/docker/certs.d/10.54.56.39:5000
 ajouter le certificat: masterRootCA.crt
 
 se logger dans docker
-docker login -u vjo -p vjo 10.54.56.39:5000
+docker login -u etudiant -p etudiant 10.54.56.39:5000
  et faire un test
 
  ATTENTION: le pods ne connait pas masterRootCA.crt qui vient d'etre créer: doit relancer k8s. Autre solution?
